@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block head_extra %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Control panel (mirrors the ESP32 serial menu) ────────────────── -->
+<div class="card mb-4 p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <span class="text-secondary text-xs"><i class="bi bi-joystick"></i> Control Panel</span>
+    <span id="val-menu-status">
+      {% if latest %}
+        {% if latest.deauth_active %}
+          <span class="badge badge-on">ATTACKING</span>
+        {% else %}
+          <span class="badge badge-off">IDLE</span>
+        {% endif %}
+      {% else %}
+        <span class="text-secondary">—</span>
+      {% endif %}
+    </span>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <form method="POST" action="{{ url_for('control', cmd='scan') }}" class="d-inline">
+      <button type="submit" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-wifi"></i> WiFi Scan
+      </button>
+    </form>
+    <form method="POST" action="{{ url_for('control', cmd='start') }}" class="d-inline">
+      <button type="submit" class="btn btn-outline-success btn-sm">
+        <i class="bi bi-play-fill"></i> Start Attack (all scanned APs)
+      </button>
+    </form>
+    <form method="POST" action="{{ url_for('control', cmd='stop') }}" class="d-inline">
+      <button type="submit" class="btn btn-outline-warning btn-sm">
+        <i class="bi bi-stop-fill"></i> Stop Attack
+      </button>
+    </form>
+    <form method="POST" action="{{ url_for('control', cmd='reset') }}" class="d-inline"
+          onsubmit="return confirm('Reset ESP32 state? This stops any attack and clears scan results.')">
+      <button type="submit" class="btn btn-outline-danger btn-sm">
+        <i class="bi bi-arrow-counterclockwise"></i> Reset
+      </button>
+    </form>
+  </div>
+  <div class="mt-2 meta-line">
+    Lệnh được xếp hàng và gửi xuống ESP32 qua Serial trong vài giây
+    (do <code>serial_bridge.py</code> xử lý) — không phản hồi ngay lập tức.
+  </div>
+
+  <hr class="my-3">
+
+  <div class="text-secondary text-xs mb-2">
+    <i class="bi bi-eye"></i> Live Menu (theo dõi joystick, cập nhật mỗi 2s)
+  </div>
+  <div id="menu-live">
+    <span class="text-secondary">Loading…</span>
+  </div>
+</div>
+
+<!-- ── Live metric cards ─────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+
+  <!-- Deauth status -->
+  <div class="col-6 col-md-3">
+    <div class="card h-100 p-3">
+      <div class="card-header mb-2">
+        <i class="bi bi-wifi-off"></i> Deauth
+      </div>
+      <div id="val-deauth-badge">
+        {% if latest %}
+          {% if latest.deauth_active %}
+            <span class="badge badge-on px-3 py-2 fs-6">ACTIVE</span>
+          {% else %}
+            <span class="badge badge-off px-3 py-2 fs-6">OFF</span>
+          {% endif %}
+        {% else %}
+          <span class="text-secondary">—</span>
+        {% endif %}
+      </div>
+      <div class="mt-2 meta-line">
+        Active readings (24h):
+        <span id="val-active-readings">{{ stats.active_readings if stats else "—" }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Packets -->
+  <div class="col-6 col-md-3">
+    <div class="card h-100 p-3">
+      <div class="card-header mb-2">
+        <i class="bi bi-broadcast"></i> Packets Sent
+      </div>
+      <div class="metric-val text-warning" id="val-pkts">
+        {% if latest %}{{ latest.deauth_pkts }}{% else %}—{% endif %}
+      </div>
+      <div class="metric-unit">pkts</div>
+      {% if stats %}
+      <div class="mt-2 meta-line">
+        min {{ stats.pkts_min }} / avg {{ stats.pkts_avg }} / max {{ stats.pkts_max }}
+        <span class="meta-sub"> (24 h)</span>
+      </div>
+      {% endif %}
+      <div class="mt-1 meta-line">
+        tx errors: <span id="val-tx-errors">{{ latest.tx_errors if latest else "—" }}</span>
+        &nbsp;|&nbsp; interval: <span id="val-interval">{{ latest.send_interval_ms if latest else "—" }}</span>ms
+      </div>
+    </div>
+  </div>
+
+  <!-- Target clients -->
+  <div class="col-6 col-md-3">
+    <div class="card h-100 p-3">
+      <div class="card-header mb-2">
+        <i class="bi bi-people"></i> Target Clients
+      </div>
+      <div class="metric-val text-info" id="val-clients">
+        {% if latest %}{{ latest.clients_found }}{% else %}—{% endif %}
+      </div>
+      <div class="metric-unit">found (unicast)</div>
+      {% if stats %}
+      <div class="mt-2 meta-line">
+        max {{ stats.clients_max }} <span class="meta-sub">(24 h)</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Device uptime -->
+  <div class="col-6 col-md-3">
+    <div class="card h-100 p-3">
+      <div class="card-header mb-2">
+        <i class="bi bi-clock-history"></i> Device Uptime
+      </div>
+      <div class="metric-val text-info" id="val-uptime">
+        {% if latest %}{{ latest.device_uptime_s }}{% else %}—{% endif %}
+      </div>
+      <div class="metric-unit">seconds</div>
+    </div>
+  </div>
+
+  <!-- Readings -->
+  <div class="col-6 col-md-3">
+    <div class="card h-100 p-3">
+      <div class="card-header mb-2">
+        <i class="bi bi-database"></i> Readings
+      </div>
+      <div class="metric-val" id="val-total">
+        {{ stats.total_readings if stats else "—" }}
+      </div>
+      <div class="metric-unit">last 24 h</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Charts ────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-lg-8">
+    <div class="card">
+      <div class="card-header py-2 d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-graph-up"></i> Deauth Packets (last 60 readings)</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" title="Refresh chart" onclick="refreshCharts()">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+      <div class="p-3">
+        <canvas id="chart-pkts" height="110"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="card h-100">
+      <div class="card-header py-2">
+        <i class="bi bi-bell-fill text-warning"></i> Recent Alerts
+      </div>
+      <div class="p-0 scroll-list" id="alert-list">
+        {% if alerts %}
+          <ul class="list-group list-group-flush">
+          {%- for a in alerts -%}
+            <li class="list-group-item text-xs">
+              <span class="badge badge-warn me-1">{{ a.rule_name }}</span>
+              <span class="text-secondary">{{ a.fired_at }}</span><br/>
+              {{ a.message }}
+            </li>
+          {%- endfor -%}
+          </ul>
+        {% else %}
+          <div class="p-3 text-secondary text-center">No alerts yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Last updated ──────────────────────────────────────────────── -->
+<p class="text-secondary meta-line">
+  <i class="bi bi-clock"></i>
+  Page loaded: {{ now.strftime('%Y-%m-%d %H:%M:%S') }} UTC &nbsp;|&nbsp;
+  Auto-refresh every <strong>10 s</strong>
+</p>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Chart setup ────────────────────────────────────────────────────
+const chartColors = {
+  pkts   : { line: '#f59e0b', fill: 'rgba(245,158,11,.15)' },
+  active : { line: '#38bdf8', fill: 'rgba(56,189,248,.10)' },
+};
+
+const ctx = document.getElementById('chart-pkts').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels   : [],
+    datasets : [
+      {
+        label          : 'Deauth Packets',
+        data           : [],
+        borderColor    : chartColors.pkts.line,
+        backgroundColor: chartColors.pkts.fill,
+        tension        : 0.3,
+        fill           : true,
+        pointRadius    : 2,
+      },
+      {
+        label          : 'Attack Active',
+        data           : [],
+        borderColor    : chartColors.active.line,
+        backgroundColor: chartColors.active.fill,
+        stepped        : true,
+        fill           : true,
+        pointRadius    : 0,
+        yAxisID        : 'y2',
+      },
+    ],
+  },
+  options: {
+    animation   : false,
+    responsive  : true,
+    interaction : { mode: 'index', intersect: false },
+    plugins: {
+      legend: { labels: { color: '#94a3b8' } },
+    },
+    scales: {
+      x  : { ticks: { color: '#64748b', maxTicksLimit: 8 }, grid: { color: '#1e2235' } },
+      y  : { ticks: { color: '#f59e0b' }, grid: { color: '#1e2235' },
+             title: { display: true, text: 'packets', color: '#f59e0b' } },
+      y2 : { position: 'right', ticks: { color: '#38bdf8', stepSize: 1 }, min: 0, max: 1,
+             grid: { drawOnChartArea: false },
+             title: { display: true, text: 'active (0/1)', color: '#38bdf8' } },
+    },
+  },
+});
+
+// ── Fetch & update ─────────────────────────────────────────────────
+async function refreshCharts() {
+  const res  = await fetch('/api/history?limit=60');
+  const rows = await res.json();
+
+  chart.data.labels           = rows.map(r => r.recorded_at.slice(11, 19));
+  chart.data.datasets[0].data = rows.map(r => r.deauth_pkts);
+  chart.data.datasets[1].data = rows.map(r => r.deauth_active);
+  chart.update();
+}
+
+async function refreshCards() {
+  const res  = await fetch('/api/latest');
+  if (!res.ok) return;
+  const d = await res.json();
+
+  document.getElementById('val-pkts').textContent      = d.deauth_pkts ?? '—';
+  document.getElementById('val-uptime').textContent    = d.device_uptime_s ?? '—';
+  document.getElementById('val-tx-errors').textContent = d.tx_errors ?? '—';
+  document.getElementById('val-interval').textContent  = d.send_interval_ms ?? '—';
+  document.getElementById('val-clients').textContent   = d.clients_found ?? '—';
+
+  const deauthBadge = document.getElementById('val-deauth-badge');
+  deauthBadge.innerHTML = d.deauth_active
+    ? '<span class="badge badge-on px-3 py-2 fs-6">ACTIVE</span>'
+    : '<span class="badge badge-off px-3 py-2 fs-6">OFF</span>';
+
+  const menuStatus = document.getElementById('val-menu-status');
+  menuStatus.innerHTML = d.deauth_active
+    ? '<span class="badge badge-on">ATTACKING</span>'
+    : '<span class="badge badge-off">IDLE</span>';
+
+  // Stats refresh
+  const sr   = await fetch('/api/stats?hours=24');
+  const stat = await sr.json();
+  document.getElementById('val-total').textContent = stat.total_readings ?? '—';
+  document.getElementById('val-active-readings').textContent = stat.active_readings ?? '—';
+}
+
+// ── Live menu (mirrors the ESP32 Serial menu while using the joystick) ─────
+const MENU_ITEMS = ['WiFi Scan', 'Start Attack', 'Stop Attack', 'Reset', 'Status'];
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+function renderMenuLine(label, i, currentIdx) {
+  const active = i === currentIdx;
+  const cls    = active ? 'text-info fw-bold' : 'text-secondary';
+  const marker = active ? '&raquo;&nbsp;' : '&nbsp;&nbsp;&nbsp;';
+  return `<li class="${cls}">${marker}${i}. ${label}</li>`;
+}
+
+function renderMenuState(m) {
+  const el = document.getElementById('menu-live');
+  if (!m || m.state === undefined) {
+    el.innerHTML = '<span class="text-secondary">Chưa có dữ liệu menu — đang chờ ESP32...</span>';
+    return;
+  }
+
+  let html = '';
+  if (m.state === 0) {
+    html += '<div class="text-secondary text-xs mb-1">Main Menu</div><ul class="list-unstyled mb-0">';
+    MENU_ITEMS.forEach((name, i) => { html += renderMenuLine(name, i, m.idx); });
+    html += '</ul>';
+  } else if (m.state === 1) {
+    html += '<div class="text-secondary text-xs mb-1">Select Target</div>';
+    if (!m.aps || m.aps.length === 0) {
+      html += '<span class="text-secondary">Chưa có AP nào được scan.</span>';
+    } else {
+      html += '<ul class="list-unstyled mb-0">';
+      m.aps.forEach((ap, i) => {
+        const label = `${escapeHtml(ap.ssid)} (ch${ap.ch} ${ap.rssi}dBm)`;
+        html += renderMenuLine(label, i, m.idx);
+      });
+      html += '</ul>';
+    }
+  } else if (m.state === 2) {
+    html += `<div class="text-secondary text-xs">Status screen — ${m.deauth_active ? 'ATTACKING' : 'IDLE'}</div>`;
+  }
+  el.innerHTML = html;
+}
+
+async function refreshMenu() {
+  try {
+    const res = await fetch('/api/menu');
+    if (!res.ok) return;
+    renderMenuState(await res.json());
+  } catch (e) {
+    // transient network error — keep last known state on screen
+  }
+}
+
+// Initial load
+refreshCharts();
+refreshCards();
+refreshMenu();
+
+// Auto-refresh: telemetry/chart every 10 s, live menu every 2 s (feels responsive
+// to joystick movement without hammering the DB)
+setInterval(() => { refreshCharts(); refreshCards(); }, 10_000);
+setInterval(refreshMenu, 2_000);
+</script>
+{% endblock %}

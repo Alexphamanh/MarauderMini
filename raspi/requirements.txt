@@ -1,0 +1,7 @@
+pyserial==3.5
+PyMySQL==1.1.0
+python-dotenv==1.0.1
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.30
+APScheduler==3.10.4

@@ -1,0 +1,313 @@
+/* ════════════════════════════════════════════════════════════════
+   MarauderMini Dashboard - Custom Styles
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Base / Layout ──────────────────────────────────────────────── */
+body {
+  background: #0f1117;
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ── Navbar ─────────────────────────────────────────────────────── */
+.navbar {
+  background: #1a1d27 !important;
+  border-bottom: 1px solid #2d3147;
+}
+
+.navbar-brand {
+  color: #7c83ff !important;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.nav-link {
+  color: #94a3b8 !important;
+  transition: color 0.2s ease;
+}
+
+.nav-link.active,
+.nav-link:hover {
+  color: #e2e8f0 !important;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────── */
+.card {
+  background: #1a1d27;
+  border: 1px solid #2d3147;
+  border-radius: 12px;
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(124, 131, 255, 0.1);
+}
+
+.card-header {
+  background: #22263a;
+  border-bottom: 1px solid #2d3147;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7c83ff;
+  font-weight: 600;
+}
+
+/* ── Metrics (Dashboard cards) ──────────────────────────────────── */
+.metric-val {
+  font-size: 2.4rem;
+  font-weight: 700;
+  line-height: 1;
+  margin: 0.5rem 0;
+}
+
+.metric-unit {
+  font-size: 0.95rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────── */
+.badge-on {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+}
+
+.badge-off {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+}
+
+.badge-warn {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  font-weight: 600;
+  padding: 0.4rem 0.8rem;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────── */
+.table {
+  color: #e2e8f0;
+}
+
+.table thead {
+  color: #7c83ff;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table-hover tbody tr {
+  transition: background 0.15s ease;
+}
+
+.table-hover tbody tr:hover {
+  background: #22263a;
+}
+
+.table td,
+.table th {
+  border-color: #2d3147;
+  vertical-align: middle;
+}
+
+/* ── Alerts ─────────────────────────────────────────────────────── */
+.alert-success {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #86efac;
+}
+
+.alert-danger {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.btn-primary {
+  background: #7c83ff;
+  border-color: #7c83ff;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: #6366f1;
+  border-color: #6366f1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(124, 131, 255, 0.3);
+}
+
+.btn-outline-secondary {
+  color: #94a3b8;
+  border-color: #2d3147;
+  transition: all 0.2s ease;
+}
+
+.btn-outline-secondary:hover {
+  background: #22263a;
+  color: #e2e8f0;
+  border-color: #3d4157;
+}
+
+.btn-outline-danger {
+  color: #ef4444;
+  border-color: #2d3147;
+}
+
+.btn-outline-danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.btn-outline-warning {
+  color: #f59e0b;
+  border-color: #2d3147;
+}
+
+.btn-outline-warning:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.btn-outline-success {
+  color: #22c55e;
+  border-color: #2d3147;
+}
+
+.btn-outline-success:hover {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+/* ── Forms ──────────────────────────────────────────────────────── */
+.form-control,
+.form-select {
+  background: #0f1117;
+  border-color: #2d3147;
+  color: #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background: #0f1117;
+  border-color: #7c83ff;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 0.2rem rgba(124, 131, 255, 0.2);
+}
+
+.form-label {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.4rem;
+}
+
+/* ── Modals ─────────────────────────────────────────────────────── */
+.modal-content {
+  background: #1a1d27;
+  border-color: #2d3147;
+}
+
+.modal-header,
+.modal-footer {
+  border-color: #2d3147;
+}
+
+.modal-title {
+  color: #7c83ff;
+  font-weight: 600;
+}
+
+.btn-close-white {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* ── Scrollbar (webkit browsers) ────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f1117;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2d3147;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3d4157;
+}
+
+/* ── Code blocks ────────────────────────────────────────────────── */
+code {
+  color: #7c83ff;
+  background: rgba(124, 131, 255, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+/* ── List groups (for alert list) ───────────────────────────────── */
+.list-group-item {
+  background: #1a1d27;
+  border-color: #2d3147;
+  color: #e2e8f0;
+  transition: background 0.15s ease;
+}
+
+.list-group-item:hover {
+  background: #22263a;
+}
+
+/* ── Utility classes ────────────────────────────────────────────── */
+.text-secondary {
+  color: #64748b !important;
+}
+
+.text-muted {
+  color: #475569 !important;
+}
+
+.text-xs {
+  font-size: 0.82rem;
+}
+
+.meta-line {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.meta-sub {
+  color: #475569;
+}
+
+.scroll-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.col-actions {
+  width: 130px;
+}
+
+hr {
+  border-color: #2d3147;
+  opacity: 1;
+}

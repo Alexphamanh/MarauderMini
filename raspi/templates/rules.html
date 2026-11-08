@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Rules{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0"><i class="bi bi-sliders text-primary"></i> Conditional Rules</h5>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalCreate">
+    <i class="bi bi-plus-lg"></i> New Rule
+  </button>
+</div>
+
+<!-- ── Rules table ─────────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Condition</th>
+          <th>Action</th>
+          <th>Param</th>
+          <th>Status</th>
+          <th class="col-actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rules %}
+        <tr>
+          <td class="text-secondary">{{ r.id }}</td>
+          <td>{{ r.name }}</td>
+          <td>
+            <code>{{ r.metric }}</code>
+            <span class="text-warning">{{ r.operator }}</span>
+            <strong>{{ r.threshold }}</strong>
+          </td>
+          <td><span class="badge bg-secondary">{{ r.action }}</span></td>
+          <td class="text-secondary text-xs">{{ r.action_param or '—' }}</td>
+          <td>
+            {% if r.enabled %}
+              <span class="badge badge-on">Enabled</span>
+            {% else %}
+              <span class="badge badge-off">Disabled</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <!-- Edit -->
+            <button type="button" class="btn btn-sm btn-outline-secondary me-1" title="Edit rule"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalEdit{{ r.id }}">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <!-- Toggle enable/disable -->
+            <form method="POST"
+                  action="{{ url_for('rule_toggle', rule_id=r.id) }}"
+                  class="d-inline me-1">
+              <button type="submit" class="btn btn-sm {% if r.enabled %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                      title="{{ 'Disable' if r.enabled else 'Enable' }}">
+                <i class="bi {% if r.enabled %}bi-pause-fill{% else %}bi-play-fill{% endif %}"></i>
+              </button>
+            </form>
+            <!-- Delete -->
+            <form method="POST"
+                  action="{{ url_for('rule_delete', rule_id=r.id) }}"
+                  class="d-inline"
+                  onsubmit="return confirm('Delete rule \'{{ r.name }}\'?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete rule">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-secondary py-4">
+            No rules defined. Click <strong>New Rule</strong> to add one.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Metric reference card ──────────────────────────────────────────────── -->
+<div class="card mt-4 p-3 text-xs text-secondary">
+  <strong class="text-secondary d-block mb-1">Available metrics</strong>
+  <code>deauth_active</code> · <code>deauth_pkts</code> · <code>device_uptime_s</code>
+  <br/>
+  <strong class="text-secondary d-block mt-2 mb-1">Available actions</strong>
+  <code>log_alert</code> — write to alert log &nbsp;|&nbsp;
+  <code>stop_attack</code> — send "stop" to ESP32 &nbsp;|&nbsp;
+  <code>start_attack</code> — send "start" to ESP32 &nbsp;|&nbsp;
+  <code>reset_device</code> — send "reset" to ESP32
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     Modals
+     ════════════════════════════════════════════════════════════════ -->
+
+<!-- Create modal -->
+<div class="modal fade" id="modalCreate" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">New Rule</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('rule_create') }}">
+        <div class="modal-body">
+          {{ _rule_form_fields('create') }}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit modals (one per rule) -->
+{% for r in rules %}
+<div class="modal fade" id="modalEdit{{ r.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Rule #{{ r.id }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('rule_update', rule_id=r.id) }}">
+        <div class="modal-body">
+          {{ _rule_form_fields('edit' ~ r.id, r) }}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     Jinja2 macro: shared form fields for create / edit
+     ════════════════════════════════════════════════════════════════ -->
+{% macro _rule_form_fields(prefix, r=None) %}
+<div class="mb-3">
+  <label class="form-label" for="{{ prefix }}-name">Rule Name</label>
+  <input id="{{ prefix }}-name" type="text" name="name" class="form-control"
+         value="{{ r.name if r else '' }}" required />
+</div>
+<div class="row g-2 mb-3">
+  <div class="col-5">
+    <label class="form-label" for="{{ prefix }}-metric">Metric</label>
+    <select id="{{ prefix }}-metric" name="metric" class="form-select" required>
+      {% for m in ['deauth_active','deauth_pkts','device_uptime_s'] %}
+        <option value="{{ m }}" {% if r and r.metric == m %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-3">
+    <label class="form-label" for="{{ prefix }}-operator">Operator</label>
+    <select id="{{ prefix }}-operator" name="operator" class="form-select" required>
+      {% for o in ['>','<','>=','<=','==','!='] %}
+        <option value="{{ o }}" {% if r and r.operator == o %}selected{% endif %}>{{ o }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-4">
+    <label class="form-label" for="{{ prefix }}-threshold">Threshold</label>
+    <input id="{{ prefix }}-threshold" type="number" step="0.01" name="threshold" class="form-control"
+           value="{{ r.threshold if r else '' }}" required />
+  </div>
+</div>
+<div class="row g-2 mb-3">
+  <div class="col-5">
+    <label class="form-label" for="{{ prefix }}-action">Action</label>
+    <select id="{{ prefix }}-action" name="action" class="form-select" required>
+      {% for a in ['log_alert','stop_attack','start_attack','reset_device'] %}
+        <option value="{{ a }}" {% if r and r.action == a %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-7">
+    <label class="form-label" for="{{ prefix }}-action_param">Action Param <span class="text-secondary">(optional)</span></label>
+    <input id="{{ prefix }}-action_param" type="text" name="action_param" class="form-control"
+           value="{{ r.action_param if r else '' }}"
+           placeholder="log_alert message, or Serial command override" />
+  </div>
+</div>
+{% endmacro %}
